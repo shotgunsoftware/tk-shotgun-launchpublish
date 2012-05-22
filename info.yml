@@ -1,0 +1,54 @@
+#
+# Copyright (c) 2012 Shotgun Software, Inc
+# ----------------------------------------------------
+#
+# Metadata defining the behaviour and requirements for this app
+
+
+# expected fields in the configuration file for this app
+configuration:
+    deny_permissions:
+        type: list
+        values: {type: shotgun_permission_group}
+        allows_empty: True
+    
+    deny_platforms:
+        type: list
+        values: {type: str}
+        allows_empty: True
+    
+    viewer_extensions: 
+        type: list
+        values: {type: str}
+        description: "A list of file extensions to send to the viewer application.
+                     Do not include the period character. Example: [exr, cin, dpx]"
+    
+    viewer_path_windows:       
+        type: str
+        description: A path to an image sequence viewer for windows. Any path with 
+                     an extension defined in the viewer_extensions list will be 
+                     dispatched here.
+    viewer_path_linux:       
+        type: str
+        description: A path to an image sequence viewer for linux. Any path with 
+                     an extension defined in the viewer_extensions list will be 
+                     dispatched here.
+    viewer_path_mac:       
+        type: str
+        description: A path to an image sequence viewer for mac. Any path with 
+                     an extension defined in the viewer_extensions list will be 
+                     dispatched here.
+    
+    hook_launch_publish:
+        type: hook
+        description: Launch an application and tell it to load a file.
+                      Typically, this hook would look at the file extension,
+                      then decide on an app to launch, launch that app, start
+                      up the engine and finally load the file.
+        parameters: [path, context, entity_id]
+        returns: True if an application was launched, False if not.
+
+
+# the Shotgun fields that this app needs in order to operate correctly
+requires_shotgun_fields:
+
