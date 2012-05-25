@@ -6,7 +6,7 @@ App that launches a Publish from inside of Shotgun.
 
 """
 
-from tank.system import Application
+from tank.platform import Application
 import tank
 import sys
 import os
@@ -118,10 +118,10 @@ class LaunchPublish(Application):
             return
     
         # get the context
-        ctx = tank.system.Context.from_path(path_on_disk)
+        ctx = tank.platform.Context.from_path(path_on_disk)
         
         # call out to the hook
-        result = self.execute_hook_from_setting("hook_launch_publish", path=path_on_disk, context=ctx)
+        result = self.execute_hook("hook_launch_publish", path=path_on_disk, context=ctx)
         
         if result == False:
             # hook didn't know how to launch this
