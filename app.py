@@ -118,7 +118,7 @@ class LaunchPublish(Application):
             return
     
         # get the context
-        ctx = tank.platform.Context.from_path(path_on_disk)
+        ctx = self.tank.context_from_path(path_on_disk)
         
         # call out to the hook
         result = self.execute_hook("hook_launch_publish", path=path_on_disk, context=ctx)
