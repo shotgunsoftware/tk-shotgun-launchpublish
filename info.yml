@@ -44,9 +44,9 @@ configuration:
         description: Launch an application and tell it to load a file.
                       Typically, this hook would look at the file extension,
                       then decide on an app to launch, launch that app, start
-                      up the engine and finally load the file.
+                      up the engine and finally load the file. Returns True if 
+                      an application was launched, False if not.
         parameters: [path, context, entity_id]
-        returns: True if an application was launched, False if not.
 
 
 # the Shotgun fields that this app needs in order to operate correctly
