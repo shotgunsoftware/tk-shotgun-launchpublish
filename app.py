@@ -29,7 +29,7 @@ class LaunchPublish(Application):
         self.engine.register_command("launch_publish", self.launch_publish, p)
 
     def launch(self, path):
-        self.engine.log_debug("Launching default system viewer for file %s" % path)        
+        self.log_debug("Launching default system viewer for file %s" % path)        
         
         # get the setting        
         system = platform.system()
@@ -44,10 +44,10 @@ class LaunchPublish(Application):
         else:
             raise Exception("Platform '%s' is not supported." % system)
         
-        self.engine.log_debug("Executing command '%s'" % cmd)
+        self.log_debug("Executing command '%s'" % cmd)
         exit_code = os.system(cmd)
         if exit_code != 0:
-            self.engine.log_error("Failed to launch '%s'!" % cmd)
+            self.log_error("Failed to launch '%s'!" % cmd)
 
 
     def _launch_viewer(self, path):
@@ -78,15 +78,15 @@ class LaunchPublish(Application):
         else:
             raise Exception("Platform '%s' is not supported." % system)
         
-        self.engine.log_debug("Executing launch command '%s'" % cmd)
+        self.log_debug("Executing launch command '%s'" % cmd)
         exit_code = os.system(cmd)
         if exit_code != 0:
-            self.engine.log_error("Failed to launch Viewer! This is most likely because the path "
-                                  "to the viewer executable is not set to a correct value. The " 
-                                  "current value is '%s' - please double check that this path "
-                                  "is valid and update as needed in this app's configuration. "
-                                  "If you have any questions, don't hesitate to contact support "
-                                  "on tanksupport@shotgunsoftware.com." % app_path )
+            self.log_error("Failed to launch Viewer! This is most likely because the path "
+                          "to the viewer executable is not set to a correct value. The " 
+                          "current value is '%s' - please double check that this path "
+                          "is valid and update as needed in this app's configuration. "
+                          "If you have any questions, don't hesitate to contact support "
+                          "on tanksupport@shotgunsoftware.com." % app_path )
         
 
     def launch_publish(self, entity_type, entity_ids):
@@ -99,7 +99,7 @@ class LaunchPublish(Application):
         publish_id = entity_ids[0]
 
         # first get the path to the file on the local platform
-        d = self.engine.shotgun.find_one("TankPublishedFile", [["id", "is", publish_id]], ["path"])
+        d = self.shotgun.find_one("TankPublishedFile", [["id", "is", publish_id]], ["path"])
         path_on_disk = d.get("path").get("local_path")
         
         # first check if we should pass this to the viewer
@@ -113,8 +113,8 @@ class LaunchPublish(Application):
         
         # check that it exists        
         if not os.path.exists(path_on_disk):            
-            self.engine.log_error("The file associated with this publish, "
-                                  "%s, cannot be found on disk!" % path_on_disk)
+            self.log_error("The file associated with this publish, "
+                            "%s, cannot be found on disk!" % path_on_disk)
             return
     
         # get the context
