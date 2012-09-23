@@ -55,7 +55,8 @@ configuration:
                       then decide on an app to launch, launch that app, start
                       up the engine and finally load the file. Returns True if 
                       an application was launched, False if not.
-        parameters: [path, context, entity_id]
+        default_value: shotgun_launch_publish
+        parameters: [path, context]
 
 
 # the Shotgun fields that this app needs in order to operate correctly
