@@ -29,21 +29,25 @@ configuration:
     viewer_extensions: 
         type: list
         values: {type: str}
+        default_value: [exr, cin, dpx]
         description: "A list of file extensions to send to the viewer application.
                      Do not include the period character. Example: `[exr, cin, dpx]`"
     
     viewer_path_windows:       
         type: str
+        default_value: "C:\\Program Files\\RV\\RV64.exe"
         description: A path to an image sequence viewer for windows. Any path with 
                      an extension defined in the viewer_extensions list will be 
                      dispatched here.
     viewer_path_linux:       
         type: str
+        default_value: "rv"
         description: A path to an image sequence viewer for linux. Any path with 
                      an extension defined in the viewer_extensions list will be 
                      dispatched here.
     viewer_path_mac:       
         type: str
+        default_value: "/Applications/RV64.app"
         description: A path to an image sequence viewer for mac. Any path with 
                      an extension defined in the viewer_extensions list will be 
                      dispatched here.
