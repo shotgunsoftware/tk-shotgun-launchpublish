@@ -10,7 +10,6 @@ from tank.platform import Application
 import tank
 import sys
 import os
-import platform
 
 class LaunchPublish(Application):
     
@@ -32,14 +31,14 @@ class LaunchPublish(Application):
         self.log_debug("Launching default system viewer for file %s" % path)        
         
         # get the setting        
-        system = platform.system()
+        system = sys.platform
         
         # run the app
-        if system == "Linux":
+        if system == "linux2":
             cmd = 'xdg-open "%s"' % path
-        elif system == "Darwin":
+        elif system == "darwin":
             cmd = 'open "%s"' % path
-        elif system == "Windows":
+        elif system == "win32":
             cmd = 'cmd.exe /C start "file" "%s"' % path
         else:
             raise Exception("Platform '%s' is not supported." % system)
@@ -58,22 +57,22 @@ class LaunchPublish(Application):
         """
         
         # get the setting        
-        system = platform.system()
+        system = sys.platform
         try:
-            app_setting = {"Linux": "viewer_path_linux", 
-                           "Darwin": "viewer_path_mac", 
-                           "Windows": "viewer_path_windows"}[system]
+            app_setting = {"linux2": "viewer_path_linux", 
+                           "darwin": "viewer_path_mac", 
+                           "win32": "viewer_path_windows"}[system]
             app_path = self.get_setting(app_setting)
             if not app_path: raise KeyError()
         except KeyError:
             raise Exception("Platform '%s' is not supported." % system) 
 
         # run the app
-        if system == "Linux":
+        if system == "linux2":
             cmd = '%s "%s" &' % (app_path, path)
-        elif system == "Darwin":
+        elif system == "darwin":
             cmd = 'open -n "%s" --args "%s"' % (app_path, path)
-        elif system == "Windows":
+        elif system == "win32":
             cmd = 'start /B "Maya" "%s" "%s"' % (app_path, path)
         else:
             raise Exception("Platform '%s' is not supported." % system)
