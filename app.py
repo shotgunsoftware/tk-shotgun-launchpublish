@@ -100,7 +100,7 @@ class LaunchPublish(Application):
         # first get the path to the file on the local platform
         d = self.shotgun.find_one("TankPublishedFile", [["id", "is", publish_id]], ["path"])
         path_on_disk = d.get("path").get("local_path")
-        
+
         # first check if we should pass this to the viewer
         # hopefully this will cover most image sequence types
         # any image sequence types not passed to the viewer
@@ -109,7 +109,7 @@ class LaunchPublish(Application):
             if path_on_disk.endswith(".%s" % x):
                 self._launch_viewer(path_on_disk)
                 return
-        
+
         # check that it exists        
         if not os.path.exists(path_on_disk):            
             self.log_error("The file associated with this publish, "
@@ -126,5 +126,4 @@ class LaunchPublish(Application):
             # hook didn't know how to launch this
             # just use std associated file launch
             self.launch(path_on_disk)
-
         
