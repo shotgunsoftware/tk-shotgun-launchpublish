@@ -38,6 +38,27 @@ class LaunchAssociatedApp(Hook):
                 status = True
                 engine.apps["tk-shotgun-launchmaya"].launch_from_path(path)
 
+        elif path.endswith(".fbx"):
+            # maya
+            if "tk-shotgun-launchmotionbuilder" in engine.apps:
+                # looks like there is a maya launcher installed in this system!
+                status = True
+                engine.apps["tk-shotgun-launchmotionbuilder"].launch_from_path(path)
+
+        elif path.endswith(".hrx"):
+            # maya
+            if "tk-shotgun-launchhiero" in engine.apps:
+                # looks like there is a maya launcher installed in this system!
+                status = True
+                engine.apps["tk-shotgun-launchhiero"].launch_from_path(path)
+
+        elif path.endswith(".max"):
+            # maya
+            if "tk-shotgun-launch3dsmax" in engine.apps:
+                # looks like there is a maya launcher installed in this system!
+                status = True
+                engine.apps["tk-shotgun-launch3dsmax"].launch_from_path(path)
+
         elif path.endswith(".psd"):
             # photoshop
             if "tk-shotgun-launchphotoshop" in engine.apps:
