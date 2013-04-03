@@ -104,7 +104,7 @@ class LaunchPublish(Application):
             publish_id = entity_ids[0]
 
         # first get the path to the file on the local platform
-        d = self.shotgun.find_one("TankPublishedFile", [["id", "is", publish_id]], ["path"])
+        d = self.shotgun.find_one("TankPublishedFile", [["id", "is", publish_id]], ["path", "entity"])
         path_on_disk = d.get("path").get("local_path")
 
         # first check if we should pass this to the viewer
@@ -126,7 +126,10 @@ class LaunchPublish(Application):
         ctx = self.tank.context_from_path(path_on_disk)
         
         # call out to the hook
-        result = self.execute_hook("hook_launch_publish", path=path_on_disk, context=ctx)
+        result = self.execute_hook("hook_launch_publish", 
+                                   path=path_on_disk, 
+                                   context=ctx, 
+                                   associated_entity=d.get("entity"))
         
         if result == False:
             # hook didn't know how to launch this
