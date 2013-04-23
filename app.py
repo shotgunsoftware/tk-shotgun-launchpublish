@@ -19,7 +19,6 @@ class LaunchPublish(Application):
         
         p = {
             "title": "Open in Associated Application",
-            "entity_types": ["TankPublishedFile", "Version"],
             "deny_permissions": deny_permissions,
             "deny_platforms": deny_platforms,
             "supports_multiple_selection": False
@@ -89,7 +88,7 @@ class LaunchPublish(Application):
 
     def launch_publish(self, entity_type, entity_ids):
         if entity_type not in ["TankPublishedFile", "Version"]:
-            raise Exception("Action only allows entity_type='TankPublishedFile' or 'Version'.")
+            raise Exception("Sorry, this app only works with entities of type TankPublishedFile or Version.")
 
         if len(entity_ids) != 1:
             raise Exception("Action only accepts a single item.")
@@ -97,7 +96,7 @@ class LaunchPublish(Application):
         if entity_type == "Version":
             v = self.shotgun.find_one("Version", [["id", "is", entity_ids[0]]], ["tank_published_file"])
             if v["tank_published_file"] is None:
-                print "Sorry, this can only be used on Versions with an associated Tank Published File."
+                self.log_error("Sorry, this can only be used on Versions with an associated Tank Published File.")
                 return
             publish_id = v["tank_published_file"]["id"]
         else:
