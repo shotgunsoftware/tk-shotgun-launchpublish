@@ -7,6 +7,7 @@ App that launches a Publish from inside of Shotgun.
 """
 
 from tank.platform import Application
+from tank import TankError
 import tank
 import sys
 import os
@@ -87,6 +88,7 @@ class LaunchPublish(Application):
                           "on tanksupport@shotgunsoftware.com." % app_path )
 
     def launch_publish(self, entity_type, entity_ids):
+        
         if entity_type not in ["TankPublishedFile", "Version"]:
             raise Exception("Sorry, this app only works with entities of type TankPublishedFile or Version.")
 
@@ -125,12 +127,16 @@ class LaunchPublish(Application):
         ctx = self.tank.context_from_path(path_on_disk)
         
         # call out to the hook
-        result = self.execute_hook("hook_launch_publish", 
-                                   path=path_on_disk, 
-                                   context=ctx, 
-                                   associated_entity=d.get("entity"))
+        try:
+            launched = self.execute_hook("hook_launch_publish", 
+                                       path=path_on_disk, 
+                                       context=ctx, 
+                                       associated_entity=d.get("entity"))
+        except TankError, e:
+            self.log_error("Failed to launch an application for this published file: %s" % e)
+            return
         
-        if result == False:
+        if not launched:
             # hook didn't know how to launch this
             # just use std associated file launch
             self.launch(path_on_disk)
