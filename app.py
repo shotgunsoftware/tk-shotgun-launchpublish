@@ -63,7 +63,8 @@ class LaunchPublish(Application):
                            "darwin": "viewer_path_mac", 
                            "win32": "viewer_path_windows"}[system]
             app_path = self.get_setting(app_setting)
-            if not app_path: raise KeyError()
+            if not app_path: 
+                raise KeyError()
         except KeyError:
             raise Exception("Platform '%s' is not supported." % system) 
 
@@ -105,7 +106,7 @@ class LaunchPublish(Application):
             publish_id = entity_ids[0]
 
         # first get the path to the file on the local platform
-        d = self.shotgun.find_one("TankPublishedFile", [["id", "is", publish_id]], ["path", "entity"])
+        d = self.shotgun.find_one("TankPublishedFile", [["id", "is", publish_id]], ["path", "task", "entity"])
         path_on_disk = d.get("path").get("local_path")
 
         # first check if we should pass this to the viewer
@@ -123,8 +124,14 @@ class LaunchPublish(Application):
                             "%s, cannot be found on disk!" % path_on_disk)
             return
     
-        # get the context
-        ctx = self.tank.context_from_path(path_on_disk)
+        # now get the context - try to be as inclusive as possible here:
+        # start with the task, if that doesn't work, fall back onto the path
+        # this is because some paths don't include all the metadata that
+        # is contained inside the publish record (e.g typically not the task)
+        if d.get("task"):
+            ctx = self.tank.context_from_entity("Task", d.get("task").get("id"))
+        else:
+            ctx = self.tank.context_from_path(path_on_disk)
         
         # call out to the hook
         try:
