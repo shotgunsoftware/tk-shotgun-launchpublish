@@ -18,85 +18,85 @@ import os
 
 class LaunchAssociatedApp(Hook):
     
-    def _create_folders(self, engine, entity):
-        """
-        Helper method. Creates folders if an entity is specified.
-        """
-        if entity:
-            self.parent.tank.create_filesystem_structure(entity["type"], entity["id"], engine)                
-    
-    def _do_launch(self, launch_app_instance_name, path, context):
-        """
-        Helper method. Calls the multi launch app
-        """
-        try:
-            # use new method
-            engine.apps[launch_app_instance_name].launch_from_path_and_context(path, context)
-        except AttributeError:
-            # fall back onto old method 
-            engine.apps[launch_app_instance_name].launch_from_path(path)
     
     def execute(self, path, context, associated_entity, **kwargs):
-
-        engine = self.parent.engine
+        """
+        Launches the associated app and starts tank.
+        
+        :param path: full path to the published file
+        :param context: context object representing the publish
+        :param associated_entity: same as context.entity
+        """
         status = False
 
         ########################################################################
         # Example implementation below:
 
         if path.endswith(".nk"):
-            
             # nuke
-            if "tk-shotgun-launchnuke" in engine.apps:
-                status = True
-                self._create_folders("tk-nuke", associated_entity)
-                self._do_launch("tk-shotgun-launchnuke", path, context)
-            else:
-                raise TankError("the tk-shotgun-launchnuke app could not be found in the environment")
+            status = True
+            self._do_launch("tk-shotgun-launchnuke", "tk-nuke", path, context)
 
         elif path.endswith(".ma") or path.endswith(".mb"):
             # maya
-            if "tk-shotgun-launchmaya" in engine.apps:
-                status = True
-                self._create_folders("tk-maya", associated_entity)
-                self._do_launch("tk-shotgun-launchmaya", path, context)
-            else:
-                raise TankError("the tk-shotgun-launchmaya app could not be found in the environment")
+            status = True
+            self._do_launch("tk-shotgun-launchmaya", "tk-maya", path, context)
 
         elif path.endswith(".fbx"):
             # Motionbuilder
-            if "tk-shotgun-launchmotionbuilder" in engine.apps:
-                status = True
-                self._create_folders("tk-motionbuilder", associated_entity)
-                self._do_launch("tk-shotgun-launchmotionbuilder", path, context)
-            else:
-                raise TankError("the tk-shotgun-launchmotionbuilder app could not be found in the environment")
+            status = True
+            self._do_launch("tk-shotgun-launchmotionbuilder", "tk-motionbuilder", path, context)            
             
         elif path.endswith(".hrx"):
             # Hiero
-            if "tk-shotgun-launchhiero" in engine.apps:
-                status = True
-                self._create_folders("tk-hiero", associated_entity)
-                self._do_launch("tk-shotgun-launchhiero", path, context)
-            else:
-                raise TankError("the tk-shotgun-launchhiero app could not be found in the environment")
+            status = True
+            self._do_launch("tk-shotgun-launchhiero", "tk-hiero", path, context)            
             
         elif path.endswith(".max"):
             # 3ds Max
-            if "tk-shotgun-launch3dsmax" in engine.apps:
-                status = True
-                self._create_folders("tk-3dsmax", associated_entity)
-                self._do_launch("tk-shotgun-launch3dsmax", path, context)
-            else:
-                raise TankError("the tk-shotgun-launch3dsmax app could not be found in the environment")
+            status = True
+            self._do_launch("tk-shotgun-launch3dsmax", "tk-3dsmax", path, context)            
             
         elif path.endswith(".psd"):
             # Photoshop
-            if "tk-shotgun-launchphotoshop" in engine.apps:
-                status = True
-                self._create_folders("tk-photoshop", associated_entity)
-                self._do_launch("tk-shotgun-launchphotoshop", path, context)
-            else:
-                raise TankError("the tk-shotgun-launchphotoshop app could not be found in the environment")
-
+            status = True
+            self._do_launch("tk-shotgun-launchphotoshop", "tk-photoshop", path, context)
+            
+        # return an indication to the app whether we launched or not
+        # if we return True here, the app will just exit
+        # if we return False, the app may try other ways to launch the file.
         return status
+
+
+    def _do_launch(self, launch_app_instance_name, engine_name, path, context):
+        """
+        Tries to create folders then launch the publish.
+        """
+        if launch_app_instance_name in self.parent.engine.apps:
+            
+            # first create folders based on the context - this is important because we 
+            # are creating them in deferred mode, meaning that in some cases, new user sandboxes
+            # maybe created at this point.
+            if context.task:
+                self.parent.tank.create_filesystem_structure("Task", 
+                                                             context.task["id"], 
+                                                             engine_name)
+            elif context.entity:
+                self.parent.tank.create_filesystem_structure(context.entity["type"], 
+                                                             context.entity["id"], 
+                                                             engine_name)
+                            
+            # now try to launch this via the tk-multi-launchapp
+            try:
+                # use new method
+                self.parent.engine.apps[launch_app_instance_name].launch_from_path_and_context(path, context)
+            except AttributeError:
+                # fall back onto old method
+                self.parent.engine.apps[launch_app_instance_name].launch_from_path(path)
+            
+            
+        else:
+            raise TankError("the %s app could not be found in the environment!" % launch_app_instance_name)
+        
+        
+

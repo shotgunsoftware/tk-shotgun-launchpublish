@@ -98,7 +98,7 @@ class LaunchPublish(Application):
 
         if entity_type == "Version":
             v = self.shotgun.find_one("Version", [["id", "is", entity_ids[0]]], ["tank_published_file"])
-            if v["tank_published_file"] is None:
+            if v.get("tank_published_file") is None:
                 self.log_error("Sorry, this can only be used on Versions with an associated Tank Published File.")
                 return
             publish_id = v["tank_published_file"]["id"]
@@ -136,9 +136,9 @@ class LaunchPublish(Application):
         # call out to the hook
         try:
             launched = self.execute_hook("hook_launch_publish", 
-                                       path=path_on_disk, 
-                                       context=ctx, 
-                                       associated_entity=d.get("entity"))
+                                         path=path_on_disk, 
+                                         context=ctx, 
+                                         associated_entity=d.get("entity"))
         except TankError, e:
             self.log_error("Failed to launch an application for this published file: %s" % e)
             return
