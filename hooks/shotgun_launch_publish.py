@@ -29,6 +29,9 @@ class LaunchAssociatedApp(Hook):
         """
         status = False
 
+        if context is None:
+            raise TankError("Context cannot be None!")
+
         ########################################################################
         # Example implementation below:
 
@@ -72,6 +75,7 @@ class LaunchAssociatedApp(Hook):
         """
         Tries to create folders then launch the publish.
         """
+        
         if launch_app_instance_name in self.parent.engine.apps:
             
             # first create folders based on the context - this is important because we 
@@ -96,7 +100,8 @@ class LaunchAssociatedApp(Hook):
             
             
         else:
-            raise TankError("the %s app could not be found in the environment!" % launch_app_instance_name)
+            raise TankError("The '%s' app could not be found in the '%s' "
+                            "environment!" % (launch_app_instance_name, self.parent.engine.environment.get("name")))
         
         
 
