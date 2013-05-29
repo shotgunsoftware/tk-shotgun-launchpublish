@@ -90,23 +90,34 @@ class LaunchPublish(Application):
 
     def launch_publish(self, entity_type, entity_ids):
         
-        if entity_type not in ["TankPublishedFile", "Version"]:
-            raise Exception("Sorry, this app only works with entities of type TankPublishedFile or Version.")
+        published_file_entity_type = tank.util.get_published_file_entity_type(self.tank)
+        
+        if entity_type not in [published_file_entity_type, "Version"]:
+            raise Exception("Sorry, this app only works with entities of type %s or Version." % published_file_entity_type)
 
         if len(entity_ids) != 1:
             raise Exception("Action only accepts a single item.")
 
         if entity_type == "Version":
-            v = self.shotgun.find_one("Version", [["id", "is", entity_ids[0]]], ["tank_published_file"])
-            if v.get("tank_published_file") is None:
-                self.log_error("Sorry, this can only be used on Versions with an associated Tank Published File.")
-                return
-            publish_id = v["tank_published_file"]["id"]
+            # entity is a version so try to get the id 
+            # of the published file it is linked to:
+            if published_file_entity_type == "TankPublishedFile":
+                v = self.shotgun.find_one("Version", [["id", "is", entity_ids[0]]], ["tank_published_file"])
+                if not v.get("tank_published_file"):
+                    self.log_error("Sorry, this can only be used on Versions with an associated Tank Published File.")
+                    return
+                publish_id = v["tank_published_file"]["id"]
+            elif published_file_entity_type == "PublishedFile":
+                v = self.shotgun.find_one("Version", [["id", "is", entity_ids[0]]], ["published_files"])
+                if not v.get("published_files"):
+                    self.log_error("Sorry, this can only be used on Versions with an associated Published File.")
+                    return
+                publish_id = v["tank_published_file"][0]["id"]
         else:
             publish_id = entity_ids[0]
 
         # first get the path to the file on the local platform
-        d = self.shotgun.find_one("TankPublishedFile", [["id", "is", publish_id]], ["path", "task", "entity"])
+        d = self.shotgun.find_one(published_file_entity_type, [["id", "is", publish_id]], ["path", "task", "entity"])
         path_on_disk = d.get("path").get("local_path")
 
         # first check if we should pass this to the viewer
