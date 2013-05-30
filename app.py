@@ -101,18 +101,19 @@ class LaunchPublish(Application):
         if entity_type == "Version":
             # entity is a version so try to get the id 
             # of the published file it is linked to:
-            if published_file_entity_type == "TankPublishedFile":
-                v = self.shotgun.find_one("Version", [["id", "is", entity_ids[0]]], ["tank_published_file"])
-                if not v.get("tank_published_file"):
-                    self.log_error("Sorry, this can only be used on Versions with an associated Tank Published File.")
-                    return
-                publish_id = v["tank_published_file"]["id"]
-            elif published_file_entity_type == "PublishedFile":
+            if published_file_entity_type == "PublishedFile":
                 v = self.shotgun.find_one("Version", [["id", "is", entity_ids[0]]], ["published_files"])
                 if not v.get("published_files"):
                     self.log_error("Sorry, this can only be used on Versions with an associated Published File.")
                     return
                 publish_id = v["tank_published_file"][0]["id"]
+            else:# == "TankPublishedFile":
+                v = self.shotgun.find_one("Version", [["id", "is", entity_ids[0]]], ["tank_published_file"])
+                if not v.get("tank_published_file"):
+                    self.log_error("Sorry, this can only be used on Versions with an associated Tank Published File.")
+                    return
+                publish_id = v["tank_published_file"]["id"]
+            
         else:
             publish_id = entity_ids[0]
 
