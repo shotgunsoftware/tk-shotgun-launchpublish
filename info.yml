@@ -22,9 +22,9 @@ configuration:
         values: {type: str}
         allows_empty: True
         description: "An optional parameter which lets you turn off this app on certain platforms. 
-                     If you don't want it to appear on the Tank action menu for a platform, just 
-                     include it in the the deny_platforms list. Valid values are 
-                     Windows, Mac and Linux."    
+                     If you don't want it to appear on the Shotgun Pipeline Toolkit action menu 
+                     for a platform, just include it in the the deny_platforms list. Valid values 
+                     are Windows, Mac and Linux."    
     
     viewer_extensions: 
         type: list

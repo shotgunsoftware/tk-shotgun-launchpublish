@@ -110,7 +110,7 @@ class LaunchPublish(Application):
             else:# == "TankPublishedFile":
                 v = self.shotgun.find_one("Version", [["id", "is", entity_ids[0]]], ["tank_published_file"])
                 if not v.get("tank_published_file"):
-                    self.log_error("Sorry, this can only be used on Versions with an associated Tank Published File.")
+                    self.log_error("Sorry, this can only be used on Versions with an associated Published File.")
                     return
                 publish_id = v["tank_published_file"]["id"]
             
