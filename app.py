@@ -86,7 +86,7 @@ class LaunchPublish(Application):
                           "current value is '%s' - please double check that this path "
                           "is valid and update as needed in this app's configuration. "
                           "If you have any questions, don't hesitate to contact support "
-                          "on tanksupport@shotgunsoftware.com." % app_path )
+                          "on sgtksupport@shotgunsoftware.com." % app_path )
 
     def launch_publish(self, entity_type, entity_ids):
         
