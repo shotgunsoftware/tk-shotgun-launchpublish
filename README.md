@@ -1,4 +1,4 @@
 tk-shotgun-launchpublish
 ========================
 
-Tank Shotgun Published File Launcher
+Shotgun Pipeline Toolkit Published File Launcher
