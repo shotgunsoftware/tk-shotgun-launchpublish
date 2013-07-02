@@ -50,7 +50,7 @@ class LaunchAssociatedApp(Hook):
             status = True
             self._do_launch("tk-shotgun-launchmotionbuilder", "tk-motionbuilder", path, context)            
             
-        elif path.endswith(".hrx"):
+        elif path.endswith(".hrox"):
             # Hiero
             status = True
             self._do_launch("tk-shotgun-launchhiero", "tk-hiero", path, context)            
