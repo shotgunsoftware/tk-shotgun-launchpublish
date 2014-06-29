@@ -67,6 +67,12 @@ configuration:
                       an application was launched, False if not.
         default_value: shotgun_launch_publish
         parameters: [path, context, associated_entity]
+        
+    hook_resolve_publish_path:
+        type: hook
+        description:    Resolve the local file path for the specified PublishedFile entity
+        default_value: "{self}/resolve_publish_path.py"
+        parameters: [sg_publish_data]
 
 
 # the Shotgun fields that this app needs in order to operate correctly

@@ -126,7 +126,16 @@ class LaunchPublish(Application):
 
         # first get the path to the file on the local platform
         d = self.shotgun.find_one(published_file_entity_type, [["id", "is", publish_id]], ["path", "task", "entity"])
-        path_on_disk = d.get("path").get("local_path")
+        try:
+            # call the hook to determine the path on disk:
+            path_on_disk = self.execute_hook("hook_resolve_publish_path", sg_publish_data=d)
+        except TankError, e:
+            self.log_error("Failed to determine the path on disk for the Published File: %s" % e)
+            return
+
+        if not path_on_disk:
+            self.log_error("Failed to determine the path on disk for the Published File!")
+            return
 
         # first check if we should pass this to the viewer
         # hopefully this will cover most image sequence types
