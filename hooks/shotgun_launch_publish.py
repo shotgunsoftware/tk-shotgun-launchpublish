@@ -45,32 +45,32 @@ class LaunchAssociatedApp(Hook):
         if path.endswith(".nk"):
             # nuke
             status = True
-            self._do_launch("tk-shotgun-launchnuke", "tk-nuke", path, context)
+            self._do_launch("launchnuke", "tk-nuke", path, context)
 
         elif path.endswith(".ma") or path.endswith(".mb"):
             # maya
             status = True
-            self._do_launch("tk-shotgun-launchmaya", "tk-maya", path, context)
+            self._do_launch("launchmaya", "tk-maya", path, context)
 
         elif path.endswith(".fbx"):
             # Motionbuilder
             status = True
-            self._do_launch("tk-shotgun-launchmotionbuilder", "tk-motionbuilder", path, context)            
+            self._do_launch("launchmotionbuilder", "tk-motionbuilder", path, context)            
             
         elif path.endswith(".hrox"):
             # Hiero
             status = True
-            self._do_launch("tk-shotgun-launchhiero", "tk-hiero", path, context)            
+            self._do_launch("launchhiero", "tk-hiero", path, context)            
             
         elif path.endswith(".max"):
             # 3ds Max
             status = True
-            self._do_launch("tk-shotgun-launch3dsmax", "tk-3dsmax", path, context)            
+            self._do_launch("launch3dsmax", "tk-3dsmax", path, context)            
             
         elif path.endswith(".psd"):
             # Photoshop
             status = True
-            self._do_launch("tk-shotgun-launchphotoshop", "tk-photoshop", path, context)
+            self._do_launch("launchphotoshop", "tk-photoshop", path, context)
             
         # return an indication to the app whether we launched or not
         # if we return True here, the app will just exit
@@ -83,32 +83,39 @@ class LaunchAssociatedApp(Hook):
         Tries to create folders then launch the publish.
         """
         
-        if launch_app_instance_name in self.parent.engine.apps:
-            
-            # first create folders based on the context - this is important because we 
-            # are creating them in deferred mode, meaning that in some cases, new user sandboxes
-            # maybe created at this point.
-            if context.task:
-                self.parent.tank.create_filesystem_structure("Task", 
-                                                             context.task["id"], 
-                                                             engine_name)
-            elif context.entity:
-                self.parent.tank.create_filesystem_structure(context.entity["type"], 
-                                                             context.entity["id"], 
-                                                             engine_name)
-                            
-            # now try to launch this via the tk-multi-launchapp
-            try:
-                # use new method
-                self.parent.engine.apps[launch_app_instance_name].launch_from_path_and_context(path, context)
-            except AttributeError:
-                # fall back onto old method
-                self.parent.engine.apps[launch_app_instance_name].launch_from_path(path)
-            
+        # in older configs, launch instances were named tk-shotgun-launchmaya
+        # in newer configs, launch instances are named tk-multi-launchamaya
+        old_config = "tk-shotgun-%s" % launch_app_instance_name
+        new_config = "tk-multi-%s" % launch_app_instance_name
+        
+        if old_config in self.parent.engine.apps:
+            # we have a tk-shotgun-xxx instance in the config
+            app_instance = old_config
+        
+        elif new_config in self.parent.engine.apps:
+            # we have a tk-multi-xxx instance in the config
+            app_instance = new_config
             
         else:
             raise TankError("The '%s' app could not be found in the '%s' "
-                            "environment!" % (launch_app_instance_name, self.parent.engine.environment.get("name")))
+                            "environment!" % (new_config, self.parent.engine.environment.get("name")))        
         
+        
+        # first create folders based on the context - this is important because we 
+        # are creating them in deferred mode, meaning that in some cases, new user sandboxes
+        # maybe created at this point.
+        if context.task:
+            self.parent.tank.create_filesystem_structure("Task", context.task["id"], engine_name)
+        elif context.entity:
+            self.parent.tank.create_filesystem_structure(context.entity["type"], context.entity["id"], engine_name)
+                        
+        # now try to launch this via the tk-multi-launchapp
+        try:
+            # use new method
+            self.parent.engine.apps[app_instance].launch_from_path_and_context(path, context)
+        except AttributeError:
+            # fall back onto old method
+            self.parent.engine.apps[app_instance].launch_from_path(path)
+            
         
 
