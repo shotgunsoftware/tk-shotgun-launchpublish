@@ -20,6 +20,15 @@ import sys
 import os
 
 class LaunchPublish(Application):
+    @property
+    def context_change_allowed(self):
+        """
+        Returns whether this app allows on-the-fly context changes without
+        needing itself to be restarted.
+
+        :rtype: bool
+        """
+        return True
     
     def init_app(self):
         deny_permissions = self.get_setting("deny_permissions")
@@ -76,7 +85,7 @@ class LaunchPublish(Application):
             raise Exception("Platform '%s' is not supported." % system) 
 
         # run the app
-        if system == "linux2":
+        if system.startswith("linux"):
             cmd = '%s "%s" &' % (app_path, path)
         elif system == "darwin":
             cmd = 'open -n "%s" --args "%s"' % (app_path, path)

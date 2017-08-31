@@ -19,13 +19,14 @@ If no suitable launcher is found, return False, and the app
 will launch the file in default viewer.
 """
 
-from tank import Hook
-from tank import TankError
 import os
 
-class LaunchAssociatedApp(Hook):
-    
-    
+import sgtk
+from sgtk import TankError
+
+HookBaseClass = sgtk.get_hook_baseclass()
+
+class LaunchAssociatedApp(HookBaseClass):
     def execute(self, path, context, associated_entity, **kwargs):
         """
         Launches the associated app and starts tank.
@@ -77,30 +78,77 @@ class LaunchAssociatedApp(Hook):
         # if we return False, the app may try other ways to launch the file.
         return status
 
+    def _do_software_launcher_launch(self, path, engine_instance_name):
+        """
+        Attempts to find a Software-entity-style launcher and uses that to
+        launch if one is found.
+
+        :param str path: The path to the file to open after launch.
+        :param str engine_instance_name: The name of the engine instance to
+            bootstrap.
+
+        :raises: RuntimeError when a usable launcher isn't found.
+        """
+        engine = self.parent.engine
+        launchapp_system_name = "tk-multi-launchapp"
+
+        # The apps are keyed by app instance name. We don't actually care
+        # what the specific instance is called, as we just want some instance
+        # of tk-multi-launchapp. Because of that, we need to check more than
+        # just whether the name of the app is a key in the engine's apps
+        # property.
+        launchapp_commands = []
+
+        for command_name, command_data in engine.commands.iteritems():
+            props = command_data["properties"]
+            app = props.get("app")
+            if app is not None and app.name == launchapp_system_name:
+                if props.get("engine_name") == engine_instance_name:
+                    launchapp_commands.append(command_data)
+
+        if not launchapp_commands:
+            raise RuntimeError(
+                "Unable to find an instance of %s currently running!" % launchapp_system_name
+            )
+
+        # Check to see if there's a group default. Use that if there is, and if
+        # there isn't then we take the first one off the top.
+        launch_callback = launchapp_commands[0]["callback"]
+
+        for command_data in launchapp_commands:
+            if command_data["properties"].get("group_default"):
+                launch_callback = command_data["callback"]
+                break
+
+        launch_callback(file_to_open=path)
+
+    def _get_legacy_launch_command(self, launch_app_instance_name):
+        """
+        Looks for a legacy-style launcher in the current list of running apps.
+
+        :param str launch_app_instance_name: The name of the launchapp instance to look for.
+
+        :returns: A launcher app instance, or None.
+        """
+        # in older configs, launch instances were named tk-shotgun-launchmaya
+        # in newer configs, launch instances are named tk-multi-launchamaya
+        old_config = "tk-shotgun-%s" % launch_app_instance_name
+        new_config = "tk-multi-%s" % launch_app_instance_name
+        app_instance = None
+        
+        if old_config in self.parent.engine.apps:
+            # we have a tk-shotgun-xxx instance in the config
+            app_instance = old_config
+        elif new_config in self.parent.engine.apps:
+            # we have a tk-multi-xxx instance in the config
+            app_instance = new_config
+
+        return app_instance
 
     def _do_launch(self, launch_app_instance_name, engine_name, path, context):
         """
         Tries to create folders then launch the publish.
         """
-        
-        # in older configs, launch instances were named tk-shotgun-launchmaya
-        # in newer configs, launch instances are named tk-multi-launchamaya
-        old_config = "tk-shotgun-%s" % launch_app_instance_name
-        new_config = "tk-multi-%s" % launch_app_instance_name
-        
-        if old_config in self.parent.engine.apps:
-            # we have a tk-shotgun-xxx instance in the config
-            app_instance = old_config
-        
-        elif new_config in self.parent.engine.apps:
-            # we have a tk-multi-xxx instance in the config
-            app_instance = new_config
-            
-        else:
-            raise TankError("The '%s' app could not be found in the '%s' "
-                            "environment!" % (new_config, self.parent.engine.environment.get("name")))        
-        
-        
         # first create folders based on the context - this is important because we 
         # are creating them in deferred mode, meaning that in some cases, new user sandboxes
         # maybe created at this point.
@@ -108,6 +156,41 @@ class LaunchAssociatedApp(Hook):
             self.parent.tank.create_filesystem_structure("Task", context.task["id"], engine_name)
         elif context.entity:
             self.parent.tank.create_filesystem_structure(context.entity["type"], context.entity["id"], engine_name)
+        
+        # in ancient configs, launch instances were named tk-shotgun-launchmaya
+        # in less-ancient configs, launch instances are named tk-multi-launchamaya
+        old_config = "tk-shotgun-%s" % launch_app_instance_name
+        new_config = "tk-multi-%s" % launch_app_instance_name
+        app_instance = self._get_legacy_launch_command(launch_app_instance_name)
+
+        # If we didn't find anything useful in the current context, then we
+        # can check the target context. This type of configuration is the approach
+        # taken in modern configurations based on tk-config-default2 for secondary
+        # entity types like PublishedFile and Version, hence it's likely that this
+        # approach will get us where we need to go.
+        if app_instance is None:
+            # Changing context here allows us to find the launchapp that is
+            # configured in the target context rather than requiring configuration
+            # for every engine in the source context. This is a result of launchapp's
+            # need of engine configurations to be present for the Software launcher
+            # functionality to be used.
+            sgtk.platform.change_context(context)
+
+            # One last chance to find a legacy-style launcher.
+            app_instance = self._get_legacy_launch_command(launch_app_instance_name)
+
+            if app_instance is None:
+                # We're likely in a situation where Software-entity launchers are
+                # being used. The route to finding the correct launcher is different
+                # in this case, so we can branch the logic here.
+                try:
+                    self._do_software_launcher_launch(path, engine_name)
+                    return
+                except RuntimeError:
+                    raise TankError(
+                        "Unable to find a suitable launcher in context "
+                        "%r for file %s." % (context, path)
+                    )
                         
         # now try to launch this via the tk-multi-launchapp
         try:
