@@ -163,42 +163,68 @@ class LaunchAssociatedApp(HookBaseClass):
         new_config = "tk-multi-%s" % launch_app_instance_name
         app_instance = self._get_legacy_launch_command(launch_app_instance_name)
 
+        # If we didn't find an old-style launcher, then we need to check for
+        # Software entity launchers in the current context.
+        if app_instance is None:
+            try:
+                self._do_software_launcher_launch(path, engine_name)
+                return
+            except RuntimeError:
+                # We just need to continue on if this didn't work. It means we're
+                # going to be changing to the launch context prior to looking for
+                # launchers again.
+                pass
+
         # If we didn't find anything useful in the current context, then we
         # can check the target context. This type of configuration is the approach
         # taken in modern configurations based on tk-config-default2 for secondary
         # entity types like PublishedFile and Version, hence it's likely that this
         # approach will get us where we need to go.
-        if app_instance is None:
-            # Changing context here allows us to find the launchapp that is
-            # configured in the target context rather than requiring configuration
-            # for every engine in the source context. This is a result of launchapp's
-            # need of engine configurations to be present for the Software launcher
-            # functionality to be used.
-            sgtk.platform.change_context(context)
+        #
+        # Changing context here allows us to find the launchapp that is
+        # configured in the target context rather than requiring configuration
+        # for every engine in the source context. This is a result of launchapp's
+        # need of engine configurations to be present for the Software launcher
+        # functionality to be used.
+        #
+        # The end goal is as follows: For environments using the tk-shotgun-launchpublish
+        # app, we do not want launchers registered as engine commands. This is because
+        # those will show up in the action menu in the web app as things like "Maya",
+        # "Nuke", etc. Instead, we want the user to launch the relevant DCC by way of
+        # the command registered by tk-shotgun-launchpublish, which looks at file
+        # extensions and determines the correct launcher. The way that this is handled
+        # in modern configurations is that the environment where tk-shotgun-launchpublish
+        # is configured does NOT contain a launchapp instance (or any old-style launcher
+        # app instances). This means no launchapp launchers show up in the web app
+        # action menu, but it also means we don't have the launchers available in the
+        # current environment. Changing context here means we're moving away from the
+        # PublishedFile's specific environment into what it's linked to -- most likely
+        # a Task context's shot_step or asset_step environment -- which will have a
+        # launchapp instance configured for the tk-shotgun engine.
+        sgtk.platform.change_context(context)
 
-            # One last chance to find a legacy-style launcher.
-            app_instance = self._get_legacy_launch_command(launch_app_instance_name)
+        # One last chance to find a legacy-style launcher.
+        app_instance = self._get_legacy_launch_command(launch_app_instance_name)
 
-            if app_instance is None:
-                # We're likely in a situation where Software-entity launchers are
-                # being used. The route to finding the correct launcher is different
-                # in this case, so we can branch the logic here.
-                try:
-                    self._do_software_launcher_launch(path, engine_name)
-                    return
-                except RuntimeError:
-                    raise TankError(
-                        "Unable to find a suitable launcher in context "
-                        "%r for file %s." % (context, path)
-                    )
-                        
-        # now try to launch this via the tk-multi-launchapp
+        if app_instance is not None:          
+            # now try to launch this via the tk-multi-launchapp
+            try:
+                # use new method
+                self.parent.engine.apps[app_instance].launch_from_path_and_context(path, context)
+            except AttributeError:
+                # fall back onto old method
+                self.parent.engine.apps[app_instance].launch_from_path(path)
+
+        # We're likely in a situation where Software-entity launchers are
+        # being used. The route to finding the correct launcher is different
+        # in this case, so we can branch the logic here.
         try:
-            # use new method
-            self.parent.engine.apps[app_instance].launch_from_path_and_context(path, context)
-        except AttributeError:
-            # fall back onto old method
-            self.parent.engine.apps[app_instance].launch_from_path(path)
+            self._do_software_launcher_launch(path, engine_name)
+        except RuntimeError:
+            raise TankError(
+                "Unable to find a suitable launcher in context "
+                "%r for file %s." % (context, path)
+            )
             
         
 
