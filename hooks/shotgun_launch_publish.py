@@ -131,7 +131,7 @@ class LaunchAssociatedApp(HookBaseClass):
         :returns: A launcher app instance, or None.
         """
         # in older configs, launch instances were named tk-shotgun-launchmaya
-        # in newer configs, launch instances are named tk-multi-launchamaya
+        # in newer configs, launch instances are named tk-multi-launchmaya
         old_config = "tk-shotgun-%s" % launch_app_instance_name
         new_config = "tk-multi-%s" % launch_app_instance_name
         app_instance = None
@@ -159,13 +159,21 @@ class LaunchAssociatedApp(HookBaseClass):
         
         # in ancient configs, launch instances were named tk-shotgun-launchmaya
         # in less-ancient configs, launch instances are named tk-multi-launchamaya
-        old_config = "tk-shotgun-%s" % launch_app_instance_name
-        new_config = "tk-multi-%s" % launch_app_instance_name
         app_instance = self._get_legacy_launch_command(launch_app_instance_name)
 
-        # If we didn't find an old-style launcher, then we need to check for
-        # Software entity launchers in the current context.
-        if app_instance is None:
+        if app_instance is not None:
+            # now try to launch this via the tk-multi-launchapp
+            try:
+                # use new method
+                self.parent.engine.apps[app_instance].launch_from_path_and_context(path, context)
+                return
+            except AttributeError:
+                # fall back onto old method
+                self.parent.engine.apps[app_instance].launch_from_path(path)
+                return
+        else:
+            # If we didn't find an old-style launcher, then we need to check for
+            # Software entity launchers in the current context.
             try:
                 self._do_software_launcher_launch(path, engine_name)
                 return
