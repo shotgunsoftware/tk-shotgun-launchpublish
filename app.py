@@ -18,6 +18,7 @@ from tank import TankError
 import tank
 import sys
 import os
+import re
 
 class LaunchPublish(Application):
     @property
@@ -136,6 +137,29 @@ class LaunchPublish(Application):
         # first get the path to the file on the local platform
         d = self.shotgun.find_one(published_file_entity_type, [["id", "is", publish_id]], ["path", "task", "entity"])
         path_on_disk = d.get("path").get("local_path")
+
+        # If this PublishedFile came from a zero config publish, it will
+        # have a file URL rather than a local path.
+        if path_on_disk is None:
+            path_on_disk = d.get("path").get("url")
+
+        if path_on_disk is None:
+            self.log_error("Unable to determine the path on disk for entity id=%s." % publish_id)
+        else:
+            # If this came from a file url via a zero-config style publish
+            # then we'll need to remove that from the head in order to end
+            # up with the local disk path to the file.
+            #
+            # On Windows, we will have a path like file:///E:/path/to/file.jpg
+            # and we need to ditch all three of the slashes at the head. On
+            # other operating systems it will just be file:///path/to/file.jpg
+            # and we will want to keep the leading slash.
+            if sys.platform.startswith("win"):
+                pattern = r"^file:///"
+            else:
+                pattern = r"^file://"
+
+            path_on_disk = re.sub(pattern, "", path_on_disk)
 
         # first check if we should pass this to the viewer
         # hopefully this will cover most image sequence types
