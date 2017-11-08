@@ -19,6 +19,7 @@ import tank
 import sys
 import os
 import re
+import urllib2
 
 class LaunchPublish(Application):
     @property
@@ -142,24 +143,28 @@ class LaunchPublish(Application):
         # have a file URL rather than a local path.
         if path_on_disk is None:
             path_on_disk = d.get("path").get("url")
+            if path_on_disk is not None:
+                # We might have something like a %20, which needs to be
+                # unquoted into a space, as an example.
+                if "%" in path_on_disk:
+                    path_on_disk = urllib2.unquote(path_on_disk)
 
-        if path_on_disk is None:
-            self.log_error("Unable to determine the path on disk for entity id=%s." % publish_id)
-        else:
-            # If this came from a file url via a zero-config style publish
-            # then we'll need to remove that from the head in order to end
-            # up with the local disk path to the file.
-            #
-            # On Windows, we will have a path like file:///E:/path/to/file.jpg
-            # and we need to ditch all three of the slashes at the head. On
-            # other operating systems it will just be file:///path/to/file.jpg
-            # and we will want to keep the leading slash.
-            if sys.platform.startswith("win"):
-                pattern = r"^file:///"
+                # If this came from a file url via a zero-config style publish
+                # then we'll need to remove that from the head in order to end
+                # up with the local disk path to the file.
+                #
+                # On Windows, we will have a path like file:///E:/path/to/file.jpg
+                # and we need to ditch all three of the slashes at the head. On
+                # other operating systems it will just be file:///path/to/file.jpg
+                # and we will want to keep the leading slash.
+                if sys.platform.startswith("win"):
+                    pattern = r"^file:///"
+                else:
+                    pattern = r"^file://"
+
+                path_on_disk = re.sub(pattern, "", path_on_disk)
             else:
-                pattern = r"^file://"
-
-            path_on_disk = re.sub(pattern, "", path_on_disk)
+                self.log_error("Unable to determine the path on disk for entity id=%s." % publish_id)
 
         # first check if we should pass this to the viewer
         # hopefully this will cover most image sequence types
