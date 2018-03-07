@@ -66,7 +66,7 @@ class LaunchAssociatedApp(HookBaseClass):
         elif path.endswith(".max"):
             # 3ds Max
             status = True
-            self._do_launch("launch3dsmax", "tk-3dsmax", path, context)            
+            self._do_launch("launch3dsmax", "tk-3dsmaxplus", path, context)
             
         elif path.endswith(".psd"):
             # Photoshop
