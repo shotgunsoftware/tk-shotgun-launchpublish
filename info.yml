@@ -68,6 +68,15 @@ configuration:
         default_value: shotgun_launch_publish
         parameters: [path, context, associated_entity]
 
+    hook_multiple_publishes:
+        type: hook
+        description: When the Version has multiple published files, select one of them.
+                     Typically, this hook would look at the published files, and
+                     based on some criteria, decide which published file to pick.
+                     The default implementation will return the first published file
+                     found respecting the viewer_extensions order.
+        default_value: shotgun_multiple_publishes
+
 
 # the Shotgun fields that this app needs in order to operate correctly
 requires_shotgun_fields:
