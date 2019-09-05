@@ -57,7 +57,7 @@ class GetPublishedFile(HookBaseClass):
             else:
                 published_files_field = "tank_published_file"
 
-            v = self.shotgun.find_one("Version", [["id", "is", entity_id]], [published_files_field])
+            v = self.parent.shotgun.find_one("Version", [["id", "is", entity_id]], [published_files_field])
             if not v.get(published_files_field):
                 raise TankError("Sorry, this can only be used on Versions with an associated published file.")
             if len(v[published_files_field]) == 1:
@@ -95,6 +95,6 @@ class GetPublishedFile(HookBaseClass):
         :param entity_id: a Shotgun ID.
         :returns: the published file with the right fields.
         """
-        return self.shotgun.find_one(
+        return self.parent.shotgun.find_one(
             entity_type,
             [["id", "is", entity_id]], ["path", "task", "entity"])
