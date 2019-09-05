@@ -115,56 +115,18 @@ class LaunchPublish(Application):
 
         if len(entity_ids) != 1:
             raise Exception("Action only accepts a single item.")
+        try:
+            d = self.execute_hook(
+                "hook_get_published_file",
+                entity_type=entity_type,
+                entity_id=entity_ids[0],
+                published_file_entity_type=published_file_entity_type
+            )
+        except TankError as e:
+            self.log_error("Failed to get a published file for %s %s: %s" % (entity_type, entity_ids[0], e))
+            return
 
-        if entity_type == "Version":
-            # entity is a version so try to get the id 
-            # of the published file it is linked to:
-            if published_file_entity_type == "PublishedFile":
-                v = self.shotgun.find_one("Version", [["id", "is", entity_ids[0]]], ["published_files"])
-                if not v.get("published_files"):
-                    self.log_error("Sorry, this can only be used on Versions with an associated Published File.")
-                    return
-                publish_id = v["published_files"][0]["id"]
-            else:# == "TankPublishedFile":
-                v = self.shotgun.find_one("Version", [["id", "is", entity_ids[0]]], ["tank_published_file"])
-                if not v.get("tank_published_file"):
-                    self.log_error("Sorry, this can only be used on Versions with an associated Published File.")
-                    return
-                publish_id = v["tank_published_file"]["id"]
-            
-        else:
-            publish_id = entity_ids[0]
-
-        # first get the path to the file on the local platform
-        d = self.shotgun.find_one(published_file_entity_type, [["id", "is", publish_id]], ["path", "task", "entity"])
-        path_on_disk = d.get("path").get("local_path")
-
-        # If this PublishedFile came from a zero config publish, it will
-        # have a file URL rather than a local path.
-        if path_on_disk is None:
-            path_on_disk = d.get("path").get("url")
-            if path_on_disk is not None:
-                # We might have something like a %20, which needs to be
-                # unquoted into a space, as an example.
-                if "%" in path_on_disk:
-                    path_on_disk = urllib2.unquote(path_on_disk)
-
-                # If this came from a file url via a zero-config style publish
-                # then we'll need to remove that from the head in order to end
-                # up with the local disk path to the file.
-                #
-                # On Windows, we will have a path like file:///E:/path/to/file.jpg
-                # and we need to ditch all three of the slashes at the head. On
-                # other operating systems it will just be file:///path/to/file.jpg
-                # and we will want to keep the leading slash.
-                if sys.platform.startswith("win"):
-                    pattern = r"^file:///"
-                else:
-                    pattern = r"^file://"
-
-                path_on_disk = re.sub(pattern, "", path_on_disk)
-            else:
-                self.log_error("Unable to determine the path on disk for entity id=%s." % publish_id)
+        path_on_disk = self.get_path_on_disk(d)
 
         # first check if we should pass this to the viewer
         # hopefully this will cover most image sequence types
@@ -204,4 +166,39 @@ class LaunchPublish(Application):
             # hook didn't know how to launch this
             # just use std associated file launch
             self.launch(path_on_disk)
-        
+
+    def get_path_on_disk(self, published_file):
+        """
+        Retrieve, if possible, the path on disk of a PublishedFile.
+
+        :param published_file: A PublishedFile dictionary.
+        :returns: The path on disk if found, otherwise ``None``.
+        """
+        path_on_disk = published_file.get("path", {}).get("local_path")
+        if path_on_disk:
+            return path_on_disk
+        # If this PublishedFile came from a zero config publish, it will
+        # have a file URL rather than a local path.
+        url = published_file.get("path").get("url")
+        if url is not None:
+            # We might have something like a %20, which needs to be
+            # unquoted into a space, as an example.
+            if "%" in url:
+                url = urllib2.unquote(url)
+
+            # If this came from a file url via a zero-config style publish
+            # then we'll need to remove that from the head in order to end
+            # up with the local disk path to the file.
+            #
+            # On Windows, we will have a path like file:///E:/path/to/file.jpg
+            # and we need to ditch all three of the slashes at the head. On
+            # other operating systems it will just be file:///path/to/file.jpg
+            # and we will want to keep the leading slash.
+            if sys.platform.startswith("win"):
+                pattern = r"^file:///"
+            else:
+                pattern = r"^file://"
+            return re.sub(pattern, "", url)
+        else:
+            self.log_error("Unable to determine the path on disk for entity id=%s." % published_file["id"])
+            return None

@@ -68,6 +68,16 @@ configuration:
         default_value: shotgun_launch_publish
         parameters: [path, context, associated_entity]
 
+    hook_get_published_file:
+        type: hook
+        description: Given a Version or a PublishedFile (legacy TankPublishedFile
+                      supported), return its linked PublishedFile. Path, task and
+                      entity fields must be returned.
+                     This hook allows to deal with the case of a Version with
+                     multiple PublishedFiles linked to it. The default implementation
+                     will select a PublishedFile based on the viewer_extensions order.
+        default_value: shotgun_get_published_file
+
 
 # the Shotgun fields that this app needs in order to operate correctly
 requires_shotgun_fields:
