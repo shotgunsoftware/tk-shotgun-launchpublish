@@ -35,9 +35,10 @@ class LaunchPublish(Application):
     def init_app(self):
         deny_permissions = self.get_setting("deny_permissions")
         deny_platforms = self.get_setting("deny_platforms")
+        title = self.get_setting("display_name", "Open in Associated Application")
         
         p = {
-            "title": "Open in Associated Application",
+            "title": title,
             "deny_permissions": deny_permissions,
             "deny_platforms": deny_platforms,
             "supports_multiple_selection": False
@@ -66,7 +67,6 @@ class LaunchPublish(Application):
         if exit_code != 0:
             self.log_error("Failed to launch '%s'!" % cmd)
 
-
     def _launch_viewer(self, path):
         """
         Launches an image viewer based on config settings.
@@ -90,7 +90,7 @@ class LaunchPublish(Application):
         if system.startswith("linux"):
             cmd = '%s "%s" &' % (app_path, path)
         elif system == "darwin":
-            cmd = 'open -n "%s" --args "%s"' % (app_path, path)
+            cmd = 'open -n -a "%s" "%s"' % (app_path, path)
         elif system == "win32":
             cmd = 'start /B "Maya" "%s" "%s"' % (app_path, path)
         else:
@@ -107,7 +107,6 @@ class LaunchPublish(Application):
                           "on support@shotgunsoftware.com." % app_path )
 
     def launch_publish(self, entity_type, entity_ids):
-        
         published_file_entity_type = tank.util.get_published_file_entity_type(self.tank)
         
         if entity_type not in [published_file_entity_type, "Version"]:

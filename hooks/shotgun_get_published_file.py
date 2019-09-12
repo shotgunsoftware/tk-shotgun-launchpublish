@@ -12,18 +12,10 @@
 Hook executed to get a PublishedFile from a Version
 or a PublishedFile (legacy TankPublishedFile supported).
 
-If it is a Version and there's more than one PublishedFile linked
-to it, this hook allows to determine which PublishedFile to pick.
+It decides which published file to return, or if it needs to raise a TankError.
 
-The default implementation cycles through the `viewer_extensions`
-config parameter, and returns the first published file matching
-one of the extensions.
+This default implementation returns the first published file it finds, with the proper fields.
 
-This allows to select PublishedFiles based on the order of
-`viewer_extensions`.
-
-If none of the PublishedFiles match any of the extensions,
-return the first one in the list.
 """
 import sgtk
 from sgtk import TankError
@@ -32,6 +24,8 @@ HookBaseClass = sgtk.get_hook_baseclass()
 
 
 class GetPublishedFile(HookBaseClass):
+    _PUBLISHED_FILE_FIELDS = ["path", "task", "entity"]
+
     def execute(self, entity_type, entity_id, published_file_entity_type, **kwargs):
         """
         Given a Version, PublishedFile or TankPublishedFile,
@@ -61,40 +55,48 @@ class GetPublishedFile(HookBaseClass):
             if not v.get(published_files_field):
                 raise TankError("Sorry, this can only be used on Versions with an associated published file.")
             if len(v[published_files_field]) == 1:
-                publish_id = v[published_files_field][0]["id"]
-                return self.published_file(published_file_entity_type, publish_id)
-            else:
-                # if there are multiple published files, pick one.
-                viewer_extensions = self.parent.get_setting("viewer_extensions")
-                if not viewer_extensions:
-                    raise TankError(
-                        "Sorry, viewer extensions must be provided when a Version has multiple PublishedFiles"
-                    )
-                published_file_ids = [pf["id"] for pf in v[published_files_field]]
-                published_files = self.sgtk.shotgun.find(
+                return self.resolve_single_file(
                     published_file_entity_type,
-                    [["id", "in", published_file_ids]],
-                    ["path", "task", "entity"]
+                    v[published_files_field][0],
                 )
-                for viewer_extension in viewer_extensions:
-                    for published_file in published_files:
-                        path_on_disk = self.parent.get_path_on_disk(published_file)
-                        if path_on_disk and path_on_disk.endswith(".%s" % viewer_extension):
-                            return published_file
-                return published_files[0]
+            else:
+                return self.resolve_multiple_files(
+                    published_file_entity_type,
+                    v[published_files_field]
+                )
         else:
             # entity is PublishedFile or TankPublishedFile. Return it
             return self.published_file(entity_type, entity_id)
 
-    def published_file(self, entity_type, entity_id):
+    def resolve_single_file(self, entity_type, published_file):
+        """
+        Decide wether or not to return the published file, or raise a TankError.
+        This default implementation returns it.
+
+        :param str entity_type: PublishedFile or TankPublishedFile.
+        :param dict published_file: The published file.
+        :returns: The published file with the right fields.
+        """
+        return self.published_file(entity_type, published_file["id"])
+
+    def resolve_multiple_files(self, published_file_type, published_files):
+        """
+        Decide which published file to return, or raise a TankError.
+        This default implementation returns the first one.
+        :param str published_file_type: PublishedFile or TankPublishedFile.
+        :param list published_files: The published files.
+        :returns: The first published file with the right fields.
+        """
+        return self.published_file(published_file_type, published_files[0]["id"])
+
+    def published_file(self, published_file_type, published_file_id):
         """
         Return the PublishedFile or TankPublishedFile with path, task and entity
-        fields
-
-        :param entity_type: PublishedFile or TankPublishedFile
-        :param entity_id: a Shotgun ID.
+        fields.
+        :param str published_file_type: PublishedFile or TankPublishedFile
+        :param int published_file_id: a Shotgun ID.
         :returns: the published file with the right fields.
         """
         return self.parent.shotgun.find_one(
-            entity_type,
-            [["id", "is", entity_id]], ["path", "task", "entity"])
+            published_file_type,
+            [["id", "is", published_file_id]], self._PUBLISHED_FILE_FIELDS)
