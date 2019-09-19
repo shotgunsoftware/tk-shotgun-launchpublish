@@ -178,7 +178,7 @@ class LaunchPublish(Application):
             return path_on_disk
         # If this PublishedFile came from a zero config publish, it will
         # have a file URL rather than a local path.
-        url = published_file.get("path").get("url")
+        url = published_file.get("path", {}).get("url")
         if url is not None:
             # We might have something like a %20, which needs to be
             # unquoted into a space, as an example.
