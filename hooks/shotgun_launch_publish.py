@@ -71,7 +71,12 @@ class LaunchAssociatedApp(HookBaseClass):
         elif path.endswith(".psd"):
             # Photoshop
             status = True
-            self._do_launch("launchphotoshop", "tk-photoshop", path, context)
+            self._do_launch("launchphotoshop", "tk-photoshopcc", path, context)
+
+        elif path.endswith(".aep"):
+            # Photoshop
+            status = True
+            self._do_launch("launchaftereffects", "tk-aftereffects", path, context)
             
         # return an indication to the app whether we launched or not
         # if we return True here, the app will just exit
