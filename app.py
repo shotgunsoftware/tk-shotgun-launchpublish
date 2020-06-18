@@ -196,7 +196,7 @@ class LaunchPublish(Application):
                                          path=path_on_disk, 
                                          context=ctx, 
                                          associated_entity=d.get("entity"))
-        except TankError, e:
+        except TankError as e:
             self.log_error("Failed to launch an application for this published file: %s" % e)
             return
         
