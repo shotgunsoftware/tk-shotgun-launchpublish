@@ -13,13 +13,14 @@ App that launches a Publish from inside of Shotgun.
 
 """
 
-from tank.platform import Application
-from tank import TankError
-import tank
+from sgtk.platform import Application
+from sgtk import TankError
+from sgtk import util
+import sgtk
 import sys
 import os
 import re
-import urllib2
+from tank_vendor.six.moves import urllib
 
 
 class LaunchPublish(Application):
@@ -49,18 +50,15 @@ class LaunchPublish(Application):
     def launch(self, path):
         self.log_debug("Launching default system viewer for file %s" % path)
 
-        # get the setting
-        system = sys.platform
-
         # run the app
-        if system == "linux2":
+        if util.is_linux():
             cmd = 'xdg-open "%s"' % path
-        elif system == "darwin":
+        elif util.is_macos():
             cmd = 'open "%s"' % path
-        elif system == "win32":
+        elif util.is_windows():
             cmd = 'cmd.exe /C start "file" "%s"' % path
         else:
-            raise Exception("Platform '%s' is not supported." % system)
+            raise Exception("Platform '%s' is not supported." % sys.platform)
 
         self.log_debug("Executing command '%s'" % cmd)
         exit_code = os.system(cmd)
@@ -74,29 +72,22 @@ class LaunchPublish(Application):
         This seems to be standard for most apps.
         """
 
-        # get the setting
-        system = sys.platform
         try:
-            app_setting = {
-                "linux2": "viewer_path_linux",
-                "darwin": "viewer_path_mac",
-                "win32": "viewer_path_windows",
-            }[system]
-            app_path = self.get_setting(app_setting)
+            app_path = None
+            if util.is_linux():
+                app_path = self.get_setting("viewer_path_linux")
+                cmd = '%s "%s" &' % (app_path, path)
+            elif util.is_macos():
+                app_path = self.get_setting("viewer_path_mac")
+                cmd = 'open -n "%s" --args "%s"' % (app_path, path)
+            elif util.is_windows():
+                app_path = self.get_setting("viewer_path_windows")
+                cmd = 'start /B "Maya" "%s" "%s"' % (app_path, path)
+
             if not app_path:
                 raise KeyError()
         except KeyError:
-            raise Exception("Platform '%s' is not supported." % system)
-
-        # run the app
-        if system.startswith("linux"):
-            cmd = '%s "%s" &' % (app_path, path)
-        elif system == "darwin":
-            cmd = 'open -n "%s" --args "%s"' % (app_path, path)
-        elif system == "win32":
-            cmd = 'start /B "Maya" "%s" "%s"' % (app_path, path)
-        else:
-            raise Exception("Platform '%s' is not supported." % system)
+            raise Exception("Platform '%s' is not supported." % sys.platform)
 
         self.log_debug("Executing launch command '%s'" % cmd)
         exit_code = os.system(cmd)
@@ -112,7 +103,7 @@ class LaunchPublish(Application):
 
     def launch_publish(self, entity_type, entity_ids):
 
-        published_file_entity_type = tank.util.get_published_file_entity_type(self.tank)
+        published_file_entity_type = sgtk.util.get_published_file_entity_type(self.sgtk)
 
         if entity_type not in [published_file_entity_type, "Version"]:
             raise Exception(
@@ -166,7 +157,7 @@ class LaunchPublish(Application):
                 # We might have something like a %20, which needs to be
                 # unquoted into a space, as an example.
                 if "%" in path_on_disk:
-                    path_on_disk = urllib2.unquote(path_on_disk)
+                    path_on_disk = urllib.parse.unquote(path_on_disk)
 
                 # If this came from a file url via a zero-config style publish
                 # then we'll need to remove that from the head in order to end
@@ -176,7 +167,7 @@ class LaunchPublish(Application):
                 # and we need to ditch all three of the slashes at the head. On
                 # other operating systems it will just be file:///path/to/file.jpg
                 # and we will want to keep the leading slash.
-                if sys.platform.startswith("win"):
+                if util.is_windows():
                     pattern = r"^file:///"
                 else:
                     pattern = r"^file://"
@@ -210,9 +201,9 @@ class LaunchPublish(Application):
         # this is because some paths don't include all the metadata that
         # is contained inside the publish record (e.g typically not the task)
         if d.get("task"):
-            ctx = self.tank.context_from_entity("Task", d.get("task").get("id"))
+            ctx = self.sgtk.context_from_entity("Task", d.get("task").get("id"))
         else:
-            ctx = self.tank.context_from_path(path_on_disk)
+            ctx = self.sgtk.context_from_path(path_on_disk)
 
         # call out to the hook
         try:
