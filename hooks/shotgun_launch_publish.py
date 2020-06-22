@@ -1,11 +1,11 @@
 # Copyright (c) 2013 Shotgun Software Inc.
-# 
+#
 # CONFIDENTIAL AND PROPRIETARY
-# 
-# This work is provided "AS IS" and subject to the Shotgun Pipeline Toolkit 
+#
+# This work is provided "AS IS" and subject to the Shotgun Pipeline Toolkit
 # Source Code License included in this distribution package. See LICENSE.
-# By accessing, using, copying or modifying this work you indicate your 
-# agreement to the Shotgun Pipeline Toolkit Source Code License. All rights 
+# By accessing, using, copying or modifying this work you indicate your
+# agreement to the Shotgun Pipeline Toolkit Source Code License. All rights
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
 """
@@ -26,11 +26,12 @@ from sgtk import TankError
 
 HookBaseClass = sgtk.get_hook_baseclass()
 
+
 class LaunchAssociatedApp(HookBaseClass):
     def execute(self, path, context, associated_entity, **kwargs):
         """
         Launches the associated app and starts tank.
-        
+
         :param path: full path to the published file
         :param context: context object representing the publish
         :param associated_entity: same as context.entity
@@ -56,18 +57,18 @@ class LaunchAssociatedApp(HookBaseClass):
         elif path.endswith(".fbx"):
             # Motionbuilder
             status = True
-            self._do_launch("launchmotionbuilder", "tk-motionbuilder", path, context)            
-            
+            self._do_launch("launchmotionbuilder", "tk-motionbuilder", path, context)
+
         elif path.endswith(".hrox"):
             # Hiero
             status = True
-            self._do_launch("launchhiero", "tk-hiero", path, context)            
-            
+            self._do_launch("launchhiero", "tk-hiero", path, context)
+
         elif path.endswith(".max"):
             # 3ds Max
             status = True
             self._do_launch("launch3dsmax", "tk-3dsmaxplus", path, context)
-            
+
         elif path.endswith(".psd") or path.endswith(".psb"):
             # Photoshop
             status = True
@@ -82,7 +83,7 @@ class LaunchAssociatedApp(HookBaseClass):
             # Photoshop
             status = True
             self._do_launch("launchhoudini", "tk-houdini", path, context)
-            
+
         # return an indication to the app whether we launched or not
         # if we return True here, the app will just exit
         # if we return False, the app may try other ways to launch the file.
@@ -118,7 +119,8 @@ class LaunchAssociatedApp(HookBaseClass):
 
         if not launchapp_commands:
             raise RuntimeError(
-                "Unable to find an instance of %s currently running!" % launchapp_system_name
+                "Unable to find an instance of %s currently running!"
+                % launchapp_system_name
             )
 
         # Check to see if there's a group default. Use that if there is, and if
@@ -145,7 +147,7 @@ class LaunchAssociatedApp(HookBaseClass):
         old_config = "tk-shotgun-%s" % launch_app_instance_name
         new_config = "tk-multi-%s" % launch_app_instance_name
         app_instance = None
-        
+
         if old_config in self.parent.engine.apps:
             # we have a tk-shotgun-xxx instance in the config
             app_instance = old_config
@@ -159,14 +161,18 @@ class LaunchAssociatedApp(HookBaseClass):
         """
         Tries to create folders then launch the publish.
         """
-        # first create folders based on the context - this is important because we 
+        # first create folders based on the context - this is important because we
         # are creating them in deferred mode, meaning that in some cases, new user sandboxes
         # maybe created at this point.
         if context.task:
-            self.parent.tank.create_filesystem_structure("Task", context.task["id"], engine_name)
+            self.parent.tank.create_filesystem_structure(
+                "Task", context.task["id"], engine_name
+            )
         elif context.entity:
-            self.parent.tank.create_filesystem_structure(context.entity["type"], context.entity["id"], engine_name)
-        
+            self.parent.tank.create_filesystem_structure(
+                context.entity["type"], context.entity["id"], engine_name
+            )
+
         # in ancient configs, launch instances were named tk-shotgun-launchmaya
         # in less-ancient configs, launch instances are named tk-multi-launchamaya
         app_instance = self._get_legacy_launch_command(launch_app_instance_name)
@@ -175,7 +181,9 @@ class LaunchAssociatedApp(HookBaseClass):
             # now try to launch this via the tk-multi-launchapp
             try:
                 # use new method
-                self.parent.engine.apps[app_instance].launch_from_path_and_context(path, context)
+                self.parent.engine.apps[app_instance].launch_from_path_and_context(
+                    path, context
+                )
                 return
             except AttributeError:
                 # fall back onto old method
@@ -224,11 +232,13 @@ class LaunchAssociatedApp(HookBaseClass):
         # One last chance to find a legacy-style launcher.
         app_instance = self._get_legacy_launch_command(launch_app_instance_name)
 
-        if app_instance is not None:          
+        if app_instance is not None:
             # now try to launch this via the tk-multi-launchapp
             try:
                 # use new method
-                self.parent.engine.apps[app_instance].launch_from_path_and_context(path, context)
+                self.parent.engine.apps[app_instance].launch_from_path_and_context(
+                    path, context
+                )
             except AttributeError:
                 # fall back onto old method
                 self.parent.engine.apps[app_instance].launch_from_path(path)
@@ -243,6 +253,3 @@ class LaunchAssociatedApp(HookBaseClass):
                 "Unable to find a suitable launcher in context "
                 "%r for file %s." % (context, path)
             )
-            
-        
-
