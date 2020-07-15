@@ -110,7 +110,7 @@ class LaunchAssociatedApp(HookBaseClass):
         # property.
         launchapp_commands = []
 
-        for command_name, command_data in engine.commands.iteritems():
+        for _command_name, command_data in engine.commands.items():
             props = command_data["properties"]
             app = props.get("app")
             if app is not None and app.name == launchapp_system_name:
