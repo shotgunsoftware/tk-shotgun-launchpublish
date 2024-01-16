@@ -84,6 +84,16 @@ class LaunchAssociatedApp(HookBaseClass):
             status = True
             self._do_launch("launchhoudini", "tk-houdini", path, context)
 
+        elif path.endswith(".wire"):
+            # Alias
+            status = True
+            self._do_launch("launchalias", "tk-alias", path, context)
+
+        elif path.endswith(".vpb") or path.endswiths(".osb"):
+            # VRED
+            status = True
+            self._do_launch("launchvred", "tk-vred", path, context)
+
         # return an indication to the app whether we launched or not
         # if we return True here, the app will just exit
         # if we return False, the app may try other ways to launch the file.
