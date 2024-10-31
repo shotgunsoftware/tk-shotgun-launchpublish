@@ -20,7 +20,7 @@ import sgtk
 import sys
 import os
 import re
-from tank_vendor.six.moves import urllib
+import urllib
 
 
 class LaunchPublish(Application):
