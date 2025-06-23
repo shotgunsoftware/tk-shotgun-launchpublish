@@ -39,7 +39,7 @@ class LaunchPublish(Application):
         deny_platforms = self.get_setting("deny_platforms")
 
         p = {
-            "title": "Open in Associated Application",
+            "title": self.get_setting("menu_name"),
             "deny_permissions": deny_permissions,
             "deny_platforms": deny_platforms,
             "supports_multiple_selection": False,

@@ -14,6 +14,11 @@
 # expected fields in the configuration file for this app
 configuration:
 
+    menu_name:
+        type: str
+        default_value: "Open in Associated Application"
+        description: "The name of the menu item that will be used to launch this app."
+
     deny_permissions:
         type: list
         values: {type: shotgun_permission_group}
