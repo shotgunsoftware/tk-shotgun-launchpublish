@@ -73,6 +73,12 @@ configuration:
         default_value: shotgun_launch_publish
         parameters: [path, context, associated_entity]
 
+    check_file_exists:
+        type: bool
+        default_value: True
+        description: "If set to True, the app will check if the file exists before trying to launch it.
+                      If the file does not exist, the app will not launch and an error message will be shown."
+
 
 # the Shotgun fields that this app needs in order to operate correctly
 requires_shotgun_fields:

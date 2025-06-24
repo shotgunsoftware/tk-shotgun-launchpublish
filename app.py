@@ -193,12 +193,13 @@ class LaunchPublish(Application):
                 return
 
         # check that it exists
-        if not os.path.exists(path_on_disk):
-            self.log_error(
-                "The file associated with this publish, "
-                "%s, cannot be found on disk!" % path_on_disk
-            )
-            return
+        if self.get_setting("check_file_exists", True):
+            if not os.path.exists(path_on_disk):
+                self.log_error(
+                    "The file associated with this publish, "
+                    "%s, cannot be found on disk!" % path_on_disk
+                )
+                return
 
         # now get the context - try to be as inclusive as possible here:
         # start with the task, if that doesn't work, fall back onto the path
@@ -209,6 +210,17 @@ class LaunchPublish(Application):
         else:
             ctx = self.sgtk.context_from_path(path_on_disk)
 
+        # version (if any is selected)
+        selected_version = None
+        if entity_type == "Version":
+            # if the version is selected, then we can use that
+            selected_version = {"type": "Version", "id": entity_ids[0]}
+
+        # kwargs
+        kwargs = {}
+        if selected_version:
+            kwargs["selected_version"] = selected_version
+
         # call out to the hook
         try:
             launched = self.execute_hook(
@@ -216,6 +228,7 @@ class LaunchPublish(Application):
                 path=path_on_disk,
                 context=ctx,
                 associated_entity=d.get("entity"),
+                **kwargs,
             )
         except TankError as e:
             self.log_error(
