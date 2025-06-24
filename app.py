@@ -42,7 +42,7 @@ class LaunchPublish(Application):
             "title": self.get_setting("menu_name"),
             "deny_permissions": deny_permissions,
             "deny_platforms": deny_platforms,
-            "supports_multiple_selection": False,
+            "supports_multiple_selection": self.get_setting("supports_multiple_selection"),
         }
 
         self.engine.register_command("launch_publish", self.launch_publish, p)
@@ -106,137 +106,148 @@ class LaunchPublish(Application):
             )
 
     def launch_publish(self, entity_type, entity_ids):
+        """
+        Launches a publish/version based on the entity type and id.
+        :param entity_type: The type of the entity to launch, e.g. "PublishedFile" or "Version".
+        :param entity_ids: list of entity ids to launch
+        :return: None
+        """
 
+        # check that we have a valid entity type
         published_file_entity_type = sgtk.util.get_published_file_entity_type(self.sgtk)
-
         if entity_type not in [published_file_entity_type, "Version"]:
             raise Exception(
                 "Sorry, this app only works with entities of type %s or Version."
                 % published_file_entity_type
             )
 
+        # Check if the app configuration allows multiple selection.
         if len(entity_ids) != 1:
-            raise Exception("Action only accepts a single item.")
+            if not self.get_setting("supports_multiple_selection"):
+                raise Exception("Action only accepts a single item.")
 
-        if entity_type == "Version":
-            # entity is a version so try to get the id
-            # of the published file it is linked to:
-            if published_file_entity_type == "PublishedFile":
-                v = self.shotgun.find_one(
-                    "Version", [["id", "is", entity_ids[0]]], ["published_files"]
-                )
-                if not v.get("published_files"):
-                    self.log_error(
-                        "Sorry, this can only be used on Versions with an associated Published File."
+        # loop through the entity ids and launch each one if all good
+        for entity_id in entity_ids:
+
+            if entity_type == "Version":
+                # entity is a version so try to get the id
+                # of the published file it is linked to:
+                if published_file_entity_type == "PublishedFile":
+                    v = self.shotgun.find_one(
+                        "Version", [["id", "is", entity_id]], ["published_files"]
                     )
-                    return
-                publish_id = v["published_files"][0]["id"]
-            else:  # == "TankPublishedFile":
-                v = self.shotgun.find_one(
-                    "Version", [["id", "is", entity_ids[0]]], ["tank_published_file"]
-                )
-                if not v.get("tank_published_file"):
-                    self.log_error(
-                        "Sorry, this can only be used on Versions with an associated Published File."
+                    if not v.get("published_files"):
+                        self.log_error(
+                            "Sorry, this can only be used on Versions with an associated Published File."
+                        )
+                        return
+                    publish_id = v["published_files"][0]["id"]
+                else:  # == "TankPublishedFile":
+                    v = self.shotgun.find_one(
+                        "Version", [["id", "is", entity_id]], ["tank_published_file"]
                     )
-                    return
-                publish_id = v["tank_published_file"]["id"]
+                    if not v.get("tank_published_file"):
+                        self.log_error(
+                            "Sorry, this can only be used on Versions with an associated Published File."
+                        )
+                        return
+                    publish_id = v["tank_published_file"]["id"]
 
-        else:
-            publish_id = entity_ids[0]
-
-        # first get the path to the file on the local platform
-        d = self.shotgun.find_one(
-            published_file_entity_type,
-            [["id", "is", publish_id]],
-            ["path", "task", "entity"],
-        )
-        path_on_disk = d.get("path").get("local_path")
-
-        # If this PublishedFile came from a zero config publish, it will
-        # have a file URL rather than a local path.
-        if path_on_disk is None:
-            path_on_disk = d.get("path").get("url")
-            if path_on_disk is not None:
-                # We might have something like a %20, which needs to be
-                # unquoted into a space, as an example.
-                if "%" in path_on_disk:
-                    path_on_disk = urllib.parse.unquote(path_on_disk)
-
-                # If this came from a file url via a zero-config style publish
-                # then we'll need to remove that from the head in order to end
-                # up with the local disk path to the file.
-                #
-                # On Windows, we will have a path like file:///E:/path/to/file.jpg
-                # and we need to ditch all three of the slashes at the head. On
-                # other operating systems it will just be file:///path/to/file.jpg
-                # and we will want to keep the leading slash.
-                if util.is_windows():
-                    pattern = r"^file:///"
-                else:
-                    pattern = r"^file://"
-
-                path_on_disk = re.sub(pattern, "", path_on_disk)
             else:
-                self.log_error(
-                    "Unable to determine the path on disk for entity id=%s."
-                    % publish_id
-                )
+                publish_id = entity_id
 
-        # first check if we should pass this to the viewer
-        # hopefully this will cover most image sequence types
-        # any image sequence types not passed to the viewer
-        # will fail later when we check if the file exists on disk
-        for x in self.get_setting("viewer_extensions", {}):
-            if path_on_disk.endswith(".%s" % x):
-                self._launch_viewer(path_on_disk)
+            # first get the path to the file on the local platform
+            d = self.shotgun.find_one(
+                published_file_entity_type,
+                [["id", "is", publish_id]],
+                ["path", "task", "entity"],
+            )
+            path_on_disk = d.get("path").get("local_path")
+
+            # If this PublishedFile came from a zero config publish, it will
+            # have a file URL rather than a local path.
+            if path_on_disk is None:
+                path_on_disk = d.get("path").get("url")
+                if path_on_disk is not None:
+                    # We might have something like a %20, which needs to be
+                    # unquoted into a space, as an example.
+                    if "%" in path_on_disk:
+                        path_on_disk = urllib.parse.unquote(path_on_disk)
+
+                    # If this came from a file url via a zero-config style publish
+                    # then we'll need to remove that from the head in order to end
+                    # up with the local disk path to the file.
+                    #
+                    # On Windows, we will have a path like file:///E:/path/to/file.jpg
+                    # and we need to ditch all three of the slashes at the head. On
+                    # other operating systems it will just be file:///path/to/file.jpg
+                    # and we will want to keep the leading slash.
+                    if util.is_windows():
+                        pattern = r"^file:///"
+                    else:
+                        pattern = r"^file://"
+
+                    path_on_disk = re.sub(pattern, "", path_on_disk)
+                else:
+                    self.log_error(
+                        "Unable to determine the path on disk for entity id=%s."
+                        % publish_id
+                    )
+
+            # first check if we should pass this to the viewer
+            # hopefully this will cover most image sequence types
+            # any image sequence types not passed to the viewer
+            # will fail later when we check if the file exists on disk
+            for x in self.get_setting("viewer_extensions", {}):
+                if path_on_disk.endswith(".%s" % x):
+                    self._launch_viewer(path_on_disk)
+                    return
+
+            # check that it exists
+            if self.get_setting("check_file_exists", True):
+                if not os.path.exists(path_on_disk):
+                    self.log_error(
+                        "The file associated with this publish, "
+                        "%s, cannot be found on disk!" % path_on_disk
+                    )
+                    return
+
+            # now get the context - try to be as inclusive as possible here:
+            # start with the task, if that doesn't work, fall back onto the path
+            # this is because some paths don't include all the metadata that
+            # is contained inside the publish record (e.g typically not the task)
+            if d.get("task"):
+                ctx = self.sgtk.context_from_entity("Task", d.get("task").get("id"))
+            else:
+                ctx = self.sgtk.context_from_path(path_on_disk)
+
+            # version (if any is selected)
+            selected_version = None
+            if entity_type == "Version":
+                # if the version is selected, then we can use that
+                selected_version = {"type": "Version", "id": entity_id}
+
+            # kwargs
+            kwargs = {}
+            if selected_version:
+                kwargs["selected_version"] = selected_version
+
+            # call out to the hook
+            try:
+                launched = self.execute_hook(
+                    "hook_launch_publish",
+                    path=path_on_disk,
+                    context=ctx,
+                    associated_entity=d.get("entity"),
+                    **kwargs,
+                )
+            except TankError as e:
+                self.log_error(
+                    "Failed to launch an application for this published file: %s" % e
+                )
                 return
 
-        # check that it exists
-        if self.get_setting("check_file_exists", True):
-            if not os.path.exists(path_on_disk):
-                self.log_error(
-                    "The file associated with this publish, "
-                    "%s, cannot be found on disk!" % path_on_disk
-                )
-                return
-
-        # now get the context - try to be as inclusive as possible here:
-        # start with the task, if that doesn't work, fall back onto the path
-        # this is because some paths don't include all the metadata that
-        # is contained inside the publish record (e.g typically not the task)
-        if d.get("task"):
-            ctx = self.sgtk.context_from_entity("Task", d.get("task").get("id"))
-        else:
-            ctx = self.sgtk.context_from_path(path_on_disk)
-
-        # version (if any is selected)
-        selected_version = None
-        if entity_type == "Version":
-            # if the version is selected, then we can use that
-            selected_version = {"type": "Version", "id": entity_ids[0]}
-
-        # kwargs
-        kwargs = {}
-        if selected_version:
-            kwargs["selected_version"] = selected_version
-
-        # call out to the hook
-        try:
-            launched = self.execute_hook(
-                "hook_launch_publish",
-                path=path_on_disk,
-                context=ctx,
-                associated_entity=d.get("entity"),
-                **kwargs,
-            )
-        except TankError as e:
-            self.log_error(
-                "Failed to launch an application for this published file: %s" % e
-            )
-            return
-
-        if not launched:
-            # hook didn't know how to launch this
-            # just use std associated file launch
-            self.launch(path_on_disk)
+            if not launched:
+                # hook didn't know how to launch this
+                # just use std associated file launch
+                self.launch(path_on_disk)

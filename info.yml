@@ -73,6 +73,12 @@ configuration:
         default_value: shotgun_launch_publish
         parameters: [path, context, associated_entity]
 
+    allow_multiple_selection:
+        type: bool
+        default_value: False
+        description: "If set to True, the app will allow multiple items to be selected.
+                      If set to False, the app will only allow a single item to be selected."
+
     check_file_exists:
         type: bool
         default_value: True
