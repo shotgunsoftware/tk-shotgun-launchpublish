@@ -14,6 +14,11 @@
 # expected fields in the configuration file for this app
 configuration:
 
+    menu_name:
+        type: str
+        default_value: "Open in Associated Application"
+        description: "The name of the menu item that will be used to launch this app."
+
     deny_permissions:
         type: list
         values: {type: shotgun_permission_group}
@@ -67,6 +72,18 @@ configuration:
                       an application was launched, False if not.
         default_value: shotgun_launch_publish
         parameters: [path, context, associated_entity]
+
+    allow_multiple_selection:
+        type: bool
+        default_value: False
+        description: "If set to True, the app will allow multiple items to be selected.
+                      If set to False, the app will only allow a single item to be selected."
+
+    check_file_exists:
+        type: bool
+        default_value: True
+        description: "If set to True, the app will check if the file exists before trying to launch it.
+                      If the file does not exist, the app will not launch and an error message will be shown."
 
 
 # the Shotgun fields that this app needs in order to operate correctly
