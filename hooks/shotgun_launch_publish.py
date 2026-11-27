@@ -89,7 +89,7 @@ class LaunchAssociatedApp(HookBaseClass):
             status = True
             self._do_launch("launchalias", "tk-alias", path, context)
 
-        elif path.endswith(".vpb") or path.endswiths(".osb"):
+        elif path.endswith(".vpb") or path.endswith(".osb"):
             # VRED
             status = True
             self._do_launch("launchvred", "tk-vred", path, context)
